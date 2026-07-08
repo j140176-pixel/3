@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Init - Google Maps API demo - August - Let's Write</title>
+    <title>Hide Business - Google Maps API demo - August - Let's Write</title>
     <link rel="canonical" href="https://www.letswrite.tw/google-map-api-marker-custom/">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
@@ -22,7 +22,7 @@
         max-width: 320px;
       }
     </style>
-
+    
     <link rel="shortcut icon" href="https://letswritetw.github.io/letswritetw/dist/img/logo_512.png"/>
     <!-- Google Tag Manager-->
     <script>
@@ -48,6 +48,22 @@
         </div>
       </div>
 
+      <hr>
+
+      <div class="row">
+        <div class="co">
+          <h5 class="d-inline-block">隱藏商家：</h5>
+          <div class="btn-group btn-group-toggle" data-toggle="buttons">
+            <label class="btn btn-info" :class="{ active: hideBusiness == 'hide' }">
+              <input type="radio" v-model="hideBusiness" value="hide"> 隱藏
+            </label>
+            <label class="btn btn-info" :class="{ active: hideBusiness == 'show' }">
+              <input type="radio" v-model="hideBusiness" value="show"> 顯示
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="row fixed-bottom">
         <div class="col">
           <div class="alert alert-info" role="alert">
@@ -68,7 +84,16 @@
       const googleMap = new Vue({
         el: '#app',
         data: {
-          map: null
+          map: null,
+          hideBusiness: 'show', // 隱藏商周：hide隱藏
+          hideStyle: [
+            {
+              featureType: 'poi.business',
+              stylers: [{
+                visibility: 'off'
+              }]
+            }
+          ]
         },
         methods: {
           // init google map
@@ -82,21 +107,24 @@
             
             // 建立地圖
             this.map = new google.maps.Map(document.getElementById('map'), {
-              center: location, // 中心點座標
-              zoom: 16, // 1-20，數字愈大，地圖愈細：1是世界地圖，20就會到街道
-              /*
-                roadmap 顯示默認道路地圖視圖。
-                satellite 顯示 Google 地球衛星圖像。
-                hybrid 顯示正常和衛星視圖的混合。
-                terrain 顯示基於地形信息的物理地圖。
-              */
+              center: location,
+              zoom: 16,
               mapTypeId: 'terrain'
             });
 
-            // 放置marker
-            let marker = new google.maps.Marker({
-              position: location,
-              map: this.map
+            // 放置多個marker
+            fetch('./map.geojson')
+              .then(results => results.json())
+              .then(result => {
+                this.features = result.features;
+                Array.prototype.forEach.call(this.features, r => {
+                  let latLng = new google.maps.LatLng(r.geometry.coordinates[0], r.geometry.coordinates[1]);
+                  let marker = new google.maps.Marker({
+                    position: latLng,
+                    map: this.map
+                  });
+                });
+
             });
 
           }
@@ -105,6 +133,21 @@
           window.addEventListener('load', () => {
             this.initMap();
           });
+        },
+        watch: {
+          // hideBusiness的值變動時，切換商家的隱藏/顯示
+          hideBusiness: function(val) {
+            if(val == 'hide') {
+              this.map.setOptions({
+                styles: this.hideStyle
+              });
+            }
+            else {
+              this.map.setOptions({
+                styles: null
+              });
+            }
+          }
         }
       });
     </script>
